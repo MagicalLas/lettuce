@@ -353,6 +353,11 @@ public class RedisAdvancedClusterReactiveCommandsImpl<K, V> extends AbstractRedi
             return super.mget(keyList);
         }
 
+        Map<K, Integer> keyIndex = new HashMap<>(keyList.size());
+        for (int i = keyList.size() - 1; i >= 0; i--) {
+            keyIndex.put(keyList.get(i), i);
+        }
+
         List<Publisher<KeyValue<K, V>>> publishers = partitioned.values().stream().map(super::mget)
                 .collect(Collectors.toList());
 
@@ -361,11 +366,8 @@ public class RedisAdvancedClusterReactiveCommandsImpl<K, V> extends AbstractRedi
             int offset = 0;
 
             for (List<K> partitionKeys : partitioned.values()) {
-                for (int i = 0; i < keyList.size(); i++) {
-                    int index = partitionKeys.indexOf(keyList.get(i));
-                    if (index != -1) {
-                        values[i] = results.get(offset + index);
-                    }
+                for (int j = 0; j < partitionKeys.size(); j++) {
+                    values[keyIndex.get(partitionKeys.get(j))] = results.get(offset + j);
                 }
                 offset += partitionKeys.size();
             }
